@@ -21,12 +21,13 @@
 # include <iostream>
 using namespace std;
 
-# define SEM_KEY 0x50 // Change this number as needed
+# define SEM_KEY 0x45763281 // Change this number as needed
+# define MAX_JOB 1000000
 
 union semun {
-    int val;               /* used for SETVAL only */
-    struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
-    ushort *array;         /* used for GETALL and SETALL */
+  int val;               /* used for SETVAL only */
+  struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */ //for preventing race condition
+  ushort *array;         /* used for GETALL and SETALL */ //to set or get the values of all sempaphores in the array
 };
 
 int check_arg (char *);

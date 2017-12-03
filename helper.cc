@@ -27,16 +27,16 @@ int check_arg (char *buffer)
 
 int sem_create (key_t key, int num)
 {
-  int id;
+  int id;                    //num = number of semaphore in the set
   if ((id = semget (key, num,  0666 | IPC_CREAT | IPC_EXCL)) < 0)
     return -1;
   return id;
 }
 
-int sem_init (int id, int num, int value)
+int sem_init (int id, int num, int value)          //num = index of a specific semaphore
 {
   union semun semctl_arg;
-  semctl_arg.val = value;
+  semctl_arg.val = value;               //val = set the value of the semaphore
   if (semctl (id, num, SETVAL, semctl_arg) < 0)
     return -1;
   return 0;
@@ -44,7 +44,7 @@ int sem_init (int id, int num, int value)
 
 void sem_wait (int id, short unsigned int num)
 {
-  struct sembuf op[] = {
+  struct sembuf op[] = {             //num = index of semaphore to be manipulated
     {num, -1, SEM_UNDO}
   };
   semop (id, op, 1);
@@ -64,3 +64,5 @@ int sem_close (int id)
     return -1;
   return 0;
 }
+
+
