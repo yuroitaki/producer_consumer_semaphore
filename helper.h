@@ -27,7 +27,7 @@ using namespace std;
 # define MUTEX 0
 # define SPACE 1
 # define ITEM 2
-
+# define TIME 20
 
 union semun {
   int val;               /* used for SETVAL only */
@@ -47,31 +47,33 @@ struct Producer{
   int prod_id;
   int job_count;
   int que_size;
+  int* prod_pointer;
   int sem_id;
+  int* job_done;
   Job** job_arr_ptr;
 
   Producer(){}
-  Producer(int id,int count,int size,int sid,Job** arr) : prod_id(id),job_count(count),que_size(size),sem_id(sid),job_arr_ptr(arr){}
+Producer(int id,int count,int size,int* ptr,int sid,int* done,Job** arr) : prod_id(id),job_count(count),que_size(size),prod_pointer(ptr),sem_id(sid),job_done(done),job_arr_ptr(arr){}
 };
 
 struct Consumer{
   int cons_id;
-  int que_size;
+  int buffer_size;
+  int* cons_pointer;
   int sem_id;
+  int* job_done;
+  int total_job;
   Job** job_arr_ptr;
   
   Consumer(){}
-  Consumer(int id, int size,int sid,Job** arr) : cons_id(id),que_size(size),sem_id(sid),job_arr_ptr(arr){}
+Consumer(int id,int size, int* ptr,int sid,int* done,int job,Job** arr) : cons_id(id),buffer_size(size),cons_pointer(ptr),sem_id(sid),job_done(done),total_job(job),job_arr_ptr(arr){}
 };
 
 int check_arg (char *);
 int sem_create (key_t, int);
 int sem_init (int, int, int);
-void sem_wait (int, short unsigned int);
+int sem_wait (int, short unsigned int);
 void sem_signal (int, short unsigned int);
 int sem_close (int);
-
-bool deposit_job(Job*,Job**,int);
-bool take_job(Job**,int&, int);
 
 #endif
