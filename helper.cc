@@ -66,3 +66,24 @@ int sem_close (int id)
 }
 
 
+bool deposit_job(Job* job_ptr, Job** job_arr, int buff_size)
+{
+  for (int i=0;i<buff_size;i++){
+    if(job_arr[i]==NULL){
+      job_arr[i] = job_ptr;
+      return true;
+    }
+  }return false;
+}
+
+bool take_job(Job** job_arr, int& job_id, int buff_size)
+{
+  for (int i=0;i<buff_size;i++){
+    cout << i << " ";
+    if(job_arr[i]!=NULL){
+      job_id = job_arr[i]->job_id;
+      job_arr[i]=NULL;
+      return true;
+    }
+  }return false;
+}
