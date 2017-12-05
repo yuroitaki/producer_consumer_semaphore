@@ -23,10 +23,10 @@
 using namespace std;
 
 # define SEM_KEY 0x99 // Change this number as needed
-# define MAX_JOB 1000000
 # define MUTEX 0
 # define SPACE 1
 # define ITEM 2
+# define OUTPUT 3
 # define TIME 20
 
 union semun {
