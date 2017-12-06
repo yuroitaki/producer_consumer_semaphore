@@ -26,7 +26,6 @@ using namespace std;
 # define MUTEX 0
 # define SPACE 1
 # define ITEM 2
-# define OUTPUT 3
 # define TIME 20
 
 union semun {

@@ -50,7 +50,7 @@ int sem_wait (int id, short unsigned int num)
   struct timespec t[] ={
     {TIME,0}
   };
-  if((num == MUTEX)||(num == OUTPUT)){
+  if(num == MUTEX){
     int mutex_result = semop (id, op, 1);
     return mutex_result;
   }

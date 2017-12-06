@@ -23,6 +23,10 @@ int main (int argc, char **argv)
       return -1;
     }
   }
+  if(num_arg[1]==0){
+    cerr << "Queue size should not be 0." << endl;
+    return -10;
+  }
   int queue_size = num_arg[1];
   int job_vol = num_arg[2];
   int producer_vol = num_arg[3];
@@ -42,7 +46,7 @@ int main (int argc, char **argv)
   for(int i=0;i<queue_size;i++){
     job_ptr[i] = NULL;
   }
-  int sem_num = 4;
+  int sem_num = 3;
   int sem_idd = sem_create(SEM_KEY,sem_num);
   if(sem_idd < 0){
     cerr << "Semaphore creation failed." << endl;
@@ -52,7 +56,6 @@ int main (int argc, char **argv)
   init_result[0] = sem_init(sem_idd,MUTEX,1);                
   init_result[1] = sem_init(sem_idd,SPACE,queue_size);       
   init_result[2] = sem_init(sem_idd,ITEM,0);
-  init_result[3] = sem_init(sem_idd,OUTPUT,1);
   
   for(int i=0;i<sem_num;i++){
     if(init_result[i] < 0){
@@ -134,9 +137,7 @@ void *producer(void* prod)
     
     int wait_code = sem_wait(sema_id,SPACE);    
     if(wait_code < 0){
-      sem_wait(sema_id,OUTPUT);
-      cout << "Producer(" << prod_param->prod_id << "): No slot available after 20 seconds." << endl;
-      sem_signal(sema_id,OUTPUT);
+      printf("Producer(%d): No slot available after 20 seconds.\n",prod_param->prod_id);
       pthread_exit(NULL);
     }
     sem_wait(sema_id,MUTEX);
@@ -146,14 +147,12 @@ void *producer(void* prod)
     (*prod_ptr)++;
     (*job_done)++;
     
-    cout << "Producer(" << prod_param->prod_id << "): Job id " << job_arr_pt[index]->job_id << " duration " << job_arr_pt[index]->duration <<endl;
+    printf("Producer(%d): Job id %d duration %d \n",prod_param->prod_id,job_arr_pt[index]->job_id,job_arr_pt[index]->duration);
   
     sem_signal(sema_id,MUTEX);
     sem_signal(sema_id,ITEM);
   }
-  sem_wait(sema_id,OUTPUT);
-  cout << "Producer(" << prod_param->prod_id << "): No more jobs to generate." << endl;
-  sem_signal(sema_id,OUTPUT);
+  printf("Producer(%d): No more jobs to generate.\n",prod_param->prod_id);
   
   pthread_exit(NULL);
 }
@@ -173,14 +172,10 @@ void *consumer (void* cons)
     int wait_code = sem_wait(sema_id,ITEM);
     if(wait_code<0){
       if(*job_done == tot_job){
-	sem_wait(sema_id,OUTPUT);
-	cout << "Consumer(" << cons_param->cons_id << "): No more jobs left." << endl;
-	sem_signal(sema_id,OUTPUT);
+	printf("Consumer(%d): No more jobs left.\n",cons_param->cons_id);
 	pthread_exit(NULL);
       }
-      sem_wait(sema_id,OUTPUT);
-      cout << "Consumer(" << cons_param->cons_id << "): No jobs arrived after 20 seconds." <<endl;
-      sem_signal(sema_id,OUTPUT);
+      printf("Consumer(%d): No jobs arrived after 20 seconds.\n",cons_param->cons_id);
       pthread_exit(NULL);
     }
     
@@ -193,15 +188,13 @@ void *consumer (void* cons)
     job_arr_pt[index] = NULL;
     (*cons_ptr)++;
     
-    cout << "Consumer(" << cons_param->cons_id << "): Job id " << j_idd << " executing sleep duration "  << sleep_dur << endl;
+    printf("Consumer(%d): Job id %d executing sleep duration %d \n",cons_param->cons_id,j_idd,sleep_dur);
     
     sem_signal(sema_id,MUTEX);
     sem_signal(sema_id,SPACE);
     
     sleep(sleep_dur);
-    sem_wait(sema_id,OUTPUT);
-    cout << "Consumer(" << cons_param->cons_id << "): Job id " << j_idd << " completed" << endl;
-    sem_signal(sema_id,OUTPUT);
+    printf("Consumer(%d): Job id %d completed \n",cons_param->cons_id,j_idd);
   }
   pthread_exit(NULL);
 }
