@@ -10,6 +10,8 @@ void *consumer (void* cons);
 
 int main (int argc, char **argv)
 {
+  /**************** Input Error Checking **************************/
+  
   int num_arg[argc];
 
   if(argc!=5){
@@ -27,6 +29,9 @@ int main (int argc, char **argv)
     cerr << "Queue size should not be 0." << endl;
     return -10;
   }
+
+  /************** Variables and Semaphore Set Up *******************/
+  
   int queue_size = num_arg[1];
   int job_vol = num_arg[2];
   int producer_vol = num_arg[3];
@@ -36,11 +41,11 @@ int main (int argc, char **argv)
   Producer prod[producer_vol];
   Consumer cons[consumer_vol]; 
   Job** job_ptr = new Job* [queue_size];
-  int* prod_ptr = new int;
+  int* prod_ptr = new int;                 //index pointer for producer circular queue
   *prod_ptr = 0;
-  int* cons_ptr = new int;
+  int* cons_ptr = new int;                //index pointer for consumer circular queue
   *cons_ptr = 0;
-  int* job_done = new int;
+  int* job_done = new int;                //count pointer to check if all jobs are done
   *job_done = 0;
   
   for(int i=0;i<queue_size;i++){
@@ -63,11 +68,14 @@ int main (int argc, char **argv)
       return -3;
     }
   }
+
+  /************ Create Threads for Producer and Consumer ****************/
+  
   pthread_t producerid[producer_vol], consumerid[consumer_vol];
 
   for (int i=0;i<producer_vol;i++){
     Producer produc(i+1,job_vol,queue_size,prod_ptr,sem_idd,job_done,job_ptr);
-    prod[i] = produc;
+    prod[i] = produc;     //store producer struct in an array
     int prod_thread_result = pthread_create(&producerid[i], NULL, producer, (void *) &prod[i]);
 
     if(prod_thread_result<0){
@@ -77,7 +85,7 @@ int main (int argc, char **argv)
   }
   for (int i=0;i<consumer_vol;i++){
     Consumer consum(i+1,queue_size,cons_ptr,sem_idd,job_done,total_job_count,job_ptr);
-    cons[i]= consum;  
+    cons[i]= consum;      // store consumer struct in an array
     int cons_thread_result = pthread_create(&consumerid[i], NULL, consumer, (void *) &cons[i]);
  
     if(cons_thread_result<0){
@@ -85,6 +93,9 @@ int main (int argc, char **argv)
       return -7;
     }
   }
+
+  /************** Join Producer and Consumer Threads *********************/
+  
   for (int i=0;i<producer_vol;i++){
     int prod_join_result = pthread_join(producerid[i], NULL);
 
@@ -105,6 +116,9 @@ int main (int argc, char **argv)
     if(job_ptr[i]!=NULL)
       cout << job_ptr[i]->job_id << " "<<job_ptr[i]->duration << endl;
   }
+
+  /*************************** Clean Up **********************************/
+  
   delete [] job_ptr;
   delete prod_ptr;
   delete cons_ptr;
@@ -119,21 +133,24 @@ int main (int argc, char **argv)
   return 0;
 }
 
+/************************************************************************/
+/****************************** Producer Thread *************************/
+
 void *producer(void* prod) 
-{
+{ 
   Producer* prod_param = (Producer*) prod;
   int job_vol = prod_param->job_count;
   int buff_size = prod_param->que_size;
   int sema_id = prod_param->sem_id;
   int* prod_ptr = prod_param->prod_pointer;
   int* job_done = prod_param->job_done;
-  Job** job_arr_pt = prod_param->job_arr_ptr;
+  Job** job_arr_pt = prod_param->job_arr_ptr;       //pointer to the shared Job array
   
   for (int i=0;i<job_vol;i++){
 
-    int sleep_dur = rand() % 5+1;
+    int sleep_dur = rand() % 5+1;             //to produce job every 1-5 secs
     sleep(sleep_dur);
-    int t = rand() % 10+1;
+    int t = rand() % 10+1;                    //to produce random job duration
     
     int wait_code = sem_wait(sema_id,SPACE);    
     if(wait_code < 0){
@@ -142,13 +159,15 @@ void *producer(void* prod)
     }
     sem_wait(sema_id,MUTEX);
 
-    int index = *prod_ptr % buff_size;
+    /*** Critical Region Begins ***/
+    int index = *prod_ptr % buff_size;         //index to create circular queue
     job_arr_pt[index] = new Job(index+1,t);
     (*prod_ptr)++;
     (*job_done)++;
     
     printf("Producer(%d): Job id %d duration %d \n",prod_param->prod_id,job_arr_pt[index]->job_id,job_arr_pt[index]->duration);
-  
+    /*** Critical Region Ends ***/
+    
     sem_signal(sema_id,MUTEX);
     sem_signal(sema_id,ITEM);
   }
@@ -156,6 +175,10 @@ void *producer(void* prod)
   
   pthread_exit(NULL);
 }
+
+
+/************************************************************************/
+/****************************** Consumer Thread *************************/
 
 void *consumer (void* cons) 
 {
@@ -178,9 +201,9 @@ void *consumer (void* cons)
       printf("Consumer(%d): No jobs arrived after 20 seconds.\n",cons_param->cons_id);
       pthread_exit(NULL);
     }
-    
     sem_wait(sema_id,MUTEX);
     
+    /*** Critical Region Begins ***/
     int index = (*cons_ptr) % buff_size;
     int sleep_dur = job_arr_pt[index]->duration;
     int j_idd = job_arr_pt[index]->job_id;
@@ -189,11 +212,12 @@ void *consumer (void* cons)
     (*cons_ptr)++;
     
     printf("Consumer(%d): Job id %d executing sleep duration %d \n",cons_param->cons_id,j_idd,sleep_dur);
+    /*** Critical Region Ends ***/
     
     sem_signal(sema_id,MUTEX);
     sem_signal(sema_id,SPACE);
-    
-    sleep(sleep_dur);
+     
+    sleep(sleep_dur);                //executing the sleep duration
     printf("Consumer(%d): Job id %d completed \n",cons_param->cons_id,j_idd);
   }
   pthread_exit(NULL);
